@@ -2,6 +2,11 @@ import streamlit as st
 import pandas as pd
 import pickle
 import numpy as np
+import warnings
+import sklearn  # Ensure sklearn is imported before unpickling
+
+# Suppress sklearn version warnings when unpickling
+warnings.filterwarnings('ignore', category=UserWarning)
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Aqua Sight AI", page_icon="💧", layout="centered")
@@ -14,6 +19,14 @@ def load_model():
         with open('water_model.pkl', 'rb') as f:
             return pickle.load(f)
     except FileNotFoundError:
+        st.error("⚠️ Error: 'water_model.pkl' not found! Please place the model file in the same folder as this script.")
+        return None
+    except ModuleNotFoundError as e:
+        st.error(f"⚠️ Error: Missing module when loading model: {str(e)}")
+        st.info("This typically happens when the model was saved with a custom class that isn't installed. Try reinstalling dependencies: pip install -r requirements.txt")
+        return None
+    except Exception as e:
+        st.error(f"⚠️ Error loading model: {str(e)}")
         return None
 
 model = load_model()

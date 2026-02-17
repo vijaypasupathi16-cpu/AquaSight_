@@ -117,6 +117,10 @@ st.markdown("""
 if 'page' not in st.session_state:
     st.session_state.page = 'landing'
 
+def go_to_welcome():
+    st.session_state.page = 'welcome'
+    st.rerun()
+
 def go_to_dashboard():
     st.session_state.page = 'dashboard'
     st.rerun()
@@ -149,6 +153,30 @@ if st.session_state.page == 'landing':
         """, unsafe_allow_html=True)
         
         if st.button("GET STARTED", use_container_width=True):
+            go_to_welcome()
+
+# --- WELCOME PAGE ---
+elif st.session_state.page == 'welcome':
+    st.title("Welcome to Aqua Sight AI")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Display Image (image.png or fallback)
+    img_path = "image.png"
+    if os.path.exists(img_path):
+        st.image(img_path, width="stretch")
+    else:
+        st.markdown("""
+        <div style="background: rgba(255,255,255,0.05); padding: 50px; text-align: center; border-radius: 15px; border: 1px solid rgba(0,230,255,0.2);">
+            <div style="font-size: 60px;">🌊</div>
+            <p>Water Safety Visualization</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("ANALYZE OUR WATER SAFETY", use_container_width=True):
             go_to_dashboard()
 
 # --- DASHBOARD PAGE ---
@@ -156,8 +184,8 @@ elif st.session_state.page == 'dashboard':
     # Header
     col_head_1, col_head_2 = st.columns([1, 8])
     with col_head_1:
-         if st.button("⬅", help="Back to Home"):
-             go_to_landing()
+         if st.button("⬅", help="Back to Welcome"):
+             go_to_welcome()
     with col_head_2:
         st.title("AQUA SIGHT AI")
     
@@ -165,7 +193,7 @@ elif st.session_state.page == 'dashboard':
     st.markdown("---")
 
     # Main Content
-    col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns([1, 1.5]) # Adjusted ratio for better balance
     
     import os
     with col1:
@@ -178,16 +206,89 @@ elif st.session_state.page == 'dashboard':
             st.image(logo_path, width="stretch")
         else:
             st.markdown("<div style='text-align: center; font-size: 50px;'>💧</div>", unsafe_allow_html=True)
+        
         st.info("Input sensor data to detect water potability.")
+        
+        # Placeholder for Charts (Left Side)
+        chart_placeholder = st.empty()
 
     with col2:
         st.subheader("Sensor Inputs")
-        ph = st.number_input("pH Level", min_value=0.0, max_value=14.0, value=7.0, step=0.1, help="Range: 0 - 14")
-        solids = st.number_input("Total Dissolved Solids (ppm)", min_value=0, value=20000, step=100, help="Measured in ppm")
-        turbidity = st.number_input("Turbidity (NTU)", min_value=0.0, value=4.0, step=0.1, help="Lower is better")
+        
+        # Separate styled boxes for each input
+        with st.container(border=True):
+            ph = st.number_input("pH Level", min_value=0.0, max_value=14.0, value=7.0, step=0.1, help="Range: 0 - 14")
+        
+        with st.container(border=True):
+            solids = st.number_input("Total Dissolved Solids (ppm)", min_value=0, value=20000, step=100, help="Measured in ppm")
+            
+        with st.container(border=True):
+            turbidity = st.number_input("Turbidity (NTU)", min_value=0.0, value=4.0, step=0.1, help="Lower is better")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        if st.button("RUN AI PREDICTION"):
+        if st.button("RUN AI PREDICTION", use_container_width=True):
             if model:
+                # Custom Water Drop Loader
+                st.markdown("""
+                <style>
+                .loader-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100px;
+                    flex-direction: column;
+                }
+                .drop {
+                    width: 20px;
+                    height: 20px;
+                    background: #00e6ff;
+                    border-radius: 50%;
+                    position: relative;
+                    animation: drop 1.5s infinite ease-in;
+                }
+                .drop:before {
+                    content: "";
+                    position: absolute;
+                    top: -10px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 0;
+                    height: 0;
+                    border-left: 10px solid transparent;
+                    border-right: 10px solid transparent;
+                    border-bottom: 15px solid #00e6ff;
+                }
+                @keyframes drop {
+                    0% { top: 0px; opacity: 1; transform: scaleX(1); }
+                    80% { top: 50px; opacity: 1; transform: scaleX(0.8); }
+                    100% { top: 60px; opacity: 0; transform: scaleX(0.6); }
+                }
+                .ripple {
+                    width: 40px;
+                    height: 10px;
+                    border: 1px solid #00e6ff;
+                    border-radius: 50%;
+                    opacity: 0;
+                    animation: ripple 1.5s infinite ease-out;
+                    animation-delay: 1.2s;
+                }
+                @keyframes ripple {
+                    0% { transform: scale(0.5); opacity: 1; }
+                    100% { transform: scale(1.5); opacity: 0; }
+                }
+                </style>
+                <div class="loader-container">
+                    <div class="drop"></div>
+                    <div class="ripple"></div>
+                    <div style="color: #cfeeff; margin-top: 20px;">Analyzing Sample...</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Simulate processing time
+                import time
+                time.sleep(3)
+                
                 features = np.array([[ph, solids, turbidity]])
                 
                 try:
@@ -208,6 +309,30 @@ elif st.session_state.page == 'dashboard':
                     
                     if prediction == 1:
                         st.balloons()
+                        
+                    # Pie Chart Visualization in Left Column (chart_placeholder)
+                    try:
+                        import matplotlib.pyplot as plt
+                        
+                        # Data for Pie Chart
+                        labels = ['Not Potable', 'Potable']
+                        sizes = proba
+                        colors = ['#ff4d4d', '#00ff88']
+                        explode = (0.1, 0) if prediction == 0 else (0, 0.1)
+
+                        fig, ax = plt.subplots(figsize=(4, 4))
+                        fig.patch.set_facecolor('none') # Transparent background
+                        ax.pie(sizes, explode=explode, labels=labels, colors=colors, autopct='%1.1f%%',
+                            shadow=True, startangle=90, textprops={'color':"white", 'fontsize': 10})
+                        ax.axis('equal')
+                        
+                        with chart_placeholder.container():
+                            st.markdown("### Safety Distribution")
+                            st.pyplot(fig, use_container_width=True)
+                        
+                    except Exception as chart_err:
+                        st.error(f"Could not load chart: {chart_err}")
+
                 except Exception as e:
                     st.error(f"Prediction Error: {e}")
             else:

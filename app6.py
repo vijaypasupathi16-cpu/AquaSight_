@@ -1,4 +1,13 @@
-<!DOCTYPE html>
+ #!/usr/bin/env python3
+"""
+This script writes the embedded HTML UI to a temporary file and opens it
+in the default web browser so you can view the dashboard locally.
+"""
+import tempfile
+import webbrowser
+from pathlib import Path
+
+HTML = '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -18,13 +27,7 @@
             display:flex;align-items:center;justify-content:center;padding:40px;
             overflow:auto;
         }
-        /* subtle animated water flow */
-        .wave {
-            position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.18;background:
-                repeating-linear-gradient(90deg, rgba(0,230,255,0.02) 0 6px, transparent 6px 12px);
-            mix-blend-mode:screen;animation:flow 10s linear infinite;
-        }
-        /* layered animated SVG waves */
+        .wave { position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.18;background: repeating-linear-gradient(90deg, rgba(0,230,255,0.02) 0 6px, transparent 6px 12px); mix-blend-mode:screen; animation:flow 10s linear infinite }
         .wave-svg{position:fixed;left:0;right:0;bottom:0;height:36vh;pointer-events:none;z-index:0;opacity:0.75}
         .wave-svg svg{width:200%;height:100%;display:block}
         .wave1{fill:rgba(0,230,255,0.10);transform:translate3d(0,0,0);animation:moveWave 8s linear infinite}
@@ -34,12 +37,9 @@
         @keyframes flow{from{background-position:0 0}to{background-position:1000px 0}}
 
         .card{position:relative;z-index:1;max-width:940px;width:100%;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:14px;padding:28px;border:1px solid rgba(0,230,255,0.12);box-shadow:0 8px 40px rgba(0,0,0,0.6)}
-
         .title-board{background:linear-gradient(90deg, rgba(0,230,255,0.06), rgba(0,120,255,0.03));padding:18px;border-radius:8px;border:1px solid rgba(0,230,255,0.12);display:flex;align-items:center;justify-content:center}
         .title-board h1{margin:0;font-size:28px;color:var(--neon);font-weight:800;letter-spacing:1px;text-transform:uppercase}
-
         .subtitle{margin-top:18px;font-size:13px;text-align:center;color:#cfeeff;text-transform:uppercase;letter-spacing:0.6px}
-
         .controls{display:flex;gap:18px;margin-top:20px;justify-content:space-between}
         .control{flex:1;background:var(--glass);padding:14px;border-radius:10px;border:1px solid rgba(0,0,0,0.2);display:flex;flex-direction:column;align-items:center}
         .label{font-size:12px;color:#bfeeff;margin-bottom:8px;text-align:center}
@@ -47,16 +47,12 @@
         .btn{background:transparent;border:1px solid rgba(0,230,255,0.12);color:var(--neon);width:36px;height:36px;border-radius:8px;font-size:18px;cursor:pointer}
         .num{width:110px;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.12);color:#eaffff;text-align:center;font-size:18px}
         .hint{font-size:12px;color:#99ddff;margin-top:8px}
-
         .actions{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:20px}
         .primary{background:linear-gradient(90deg,var(--neon),#4dd6ff);border:none;color:#042;cursor:pointer;padding:12px 18px;border-radius:10px;font-weight:700}
-
         .result{margin-top:20px;padding:14px;border-radius:10px;background:rgba(0,0,0,0.12);display:flex;justify-content:space-between;align-items:center}
         .status{font-weight:800;color:var(--neon);font-size:16px}
         .confidence{font-size:14px;color:#bfefff}
-
         footer.small{margin-top:12px;text-align:center;color:#9fdfff;font-size:12px}
-
         @media(max-width:760px){.controls{flex-direction:column}.num{width:100%}}
     </style>
 </head>
@@ -70,7 +66,6 @@
         </svg>
     </div>
 
-    <!-- Landing / Get Started view -->
     <section id="landing" style="min-height:100vh;display:flex;align-items:center;justify-content:center;z-index:2;">
         <div style="text-align:center;max-width:900px;padding:40px;border-radius:14px;">
             <div style="background:linear-gradient(90deg, rgba(0,230,255,0.04), rgba(0,120,255,0.02));padding:28px;border-radius:12px;border:1px solid rgba(0,230,255,0.12);">
@@ -168,16 +163,12 @@
             const turb = parseFloat(document.getElementById('turbidity').value)||0;
             const temp = parseFloat(document.getElementById('temp').value)||0;
 
-            // simple heuristic scoring (simulated AI)
-            // pH ideal 6.5-8.5
             let phScore = 0;
             if(ph>=6.5 && ph<=8.5) phScore=1;
             else phScore = Math.max(0,1 - Math.abs(ph - (ph<6.5?6.5:8.5))/4);
 
-            // turbidity: lower is better, assume 0-100 scale
             let turbScore = clamp(1 - (turb/100), 0, 1);
 
-            // temperature: ideal ~20-25C
             let tempDist = 0;
             if(temp>=20 && temp<=25) tempDist = 0;
             else tempDist = Math.min(10, Math.abs(temp - (temp<20?20:25)));
@@ -189,13 +180,11 @@
             if(overall >= 0.75) status = 'Good';
             else if(overall >= 0.5) status = 'Moderate';
 
-            // model confidence simulated from overall score with small randomness
             const confidence = Math.round(clamp(overall * 100 + (Math.random()*8-4), 0, 100));
 
             document.getElementById('status').textContent = status;
             document.getElementById('confidence').textContent = confidence + '%';
 
-            // small visual cue on status color
             const statusEl = document.getElementById('status');
             if(status==='Good') statusEl.style.color = '#7CFC00';
             else if(status==='Moderate') statusEl.style.color = '#FFD700';
@@ -204,3 +193,16 @@
     </script>
 </body>
 </html>
+'''
+
+def main():
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.html')
+    tmp.write(HTML.encode('utf-8'))
+    tmp.flush()
+    tmp.close()
+    uri = Path(tmp.name).as_uri()
+    print('Opening dashboard at', uri)
+    webbrowser.open(uri)
+
+if __name__ == '__main__':
+    main()

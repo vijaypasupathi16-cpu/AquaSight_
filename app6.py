@@ -1,7 +1,7 @@
  #!/usr/bin/env python3
 """
-This script writes the embedded HTML UI to a temporary file and opens it
-in the default web browser so you can view the dashboard locally.
+Render the dashboard. If Streamlit is available, embed the HTML in Streamlit;
+otherwise write a temporary HTML file and open it in the browser.
 """
 import tempfile
 import webbrowser
@@ -196,13 +196,26 @@ HTML = '''<!DOCTYPE html>
 '''
 
 def main():
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.html')
-    tmp.write(HTML.encode('utf-8'))
-    tmp.flush()
-    tmp.close()
-    uri = Path(tmp.name).as_uri()
-    print('Opening dashboard at', uri)
-    webbrowser.open(uri)
+    # Try to render inside Streamlit if available (avoids full-black page issue)
+    try:
+        import streamlit as st
+        from streamlit.components.v1 import html as st_html
+
+        st.set_page_config(page_title='AquaSight Dashboard', layout='wide')
+        st.markdown('<div style="max-width:1200px;margin:0 auto">', unsafe_allow_html=True)
+        st_html(HTML, height=800, scrolling=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        print('Rendered dashboard inside Streamlit. If you ran `streamlit run app6.py`, open the Streamlit URL shown in the terminal.')
+        return
+    except Exception:
+        # Fallback: write temporary file and open in browser
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.html')
+        tmp.write(HTML.encode('utf-8'))
+        tmp.flush()
+        tmp.close()
+        uri = Path(tmp.name).as_uri()
+        print('Opening dashboard at', uri)
+        webbrowser.open(uri)
 
 if __name__ == '__main__':
     main()

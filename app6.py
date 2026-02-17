@@ -1,14 +1,19 @@
- 
-import streamlit as st
+ import streamlit as st
 import pickle
 import numpy as np
 import os
+import matplotlib
+matplotlib.use('Agg') # Ensure non-interactive backend
+import matplotlib.pyplot as plt
+
+# Get absolute path to current directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Page Configuration
 st.set_page_config(
     page_title="Aqua Sight AI",
     page_icon="💧",
-    layout="centered",
+    layout="wide", # Changed to wide for better dashboard layout
     initial_sidebar_state="collapsed"
 )
 
@@ -21,7 +26,8 @@ warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 @st.cache_resource
 def load_model():
     try:
-        with open('water_model.pkl', 'rb') as f:
+        model_path = os.path.join(BASE_DIR, 'water_model.pkl')
+        with open(model_path, 'rb') as f:
             return pickle.load(f)
     except Exception as e:
         st.error(f"Error loading model: {e}")
@@ -115,7 +121,14 @@ st.markdown("""
 
 # Initialize Session State
 if 'page' not in st.session_state:
-    st.session_state.page = 'landing'
+    st.session_state.page = 'splash' # Start at splash screen
+    
+if 'history' not in st.session_state:
+    st.session_state.history = []
+
+def go_to_splash():
+    st.session_state.page = 'splash'
+    st.rerun()
 
 def go_to_welcome():
     st.session_state.page = 'welcome'
@@ -129,20 +142,74 @@ def go_to_landing():
     st.session_state.page = 'landing'
     st.rerun()
 
+
+# --- SPLASH SCREEN ---
+if st.session_state.page == 'splash':
+    # CSS Animation for Splash
+    st.markdown("""
+    <style>
+    .splash-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 80vh;
+        animation: fadeIn 2s ease-in-out;
+    }
+    .splash-logo {
+        font-size: 100px;
+        font-weight: bold;
+        background: linear-gradient(45deg, #00e6ff, #00ff88);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: pulse 2s infinite;
+    }
+    .splash-text {
+        font-size: 30px;
+        color: #cfeeff;
+        letter-spacing: 5px;
+        margin-top: 20px;
+        animation: slideUp 1.5s ease-out;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(1); opacity: 0.8; }
+    }
+    @keyframes slideUp {
+        0% { transform: translateY(50px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeIn {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+    </style>
+    <div class="splash-container">
+        <div class="splash-logo">A</div>
+        <div class="splash-text">AQUA SIGHT AI</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Auto-redirect after 3 seconds
+    import time
+    time.sleep(3)
+    go_to_landing()
+
 # --- LANDING PAGE ---
-if st.session_state.page == 'landing':
+elif st.session_state.page == 'landing':
     # Center alignment using columns
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
         st.markdown("<br><br>", unsafe_allow_html=True)
         # Logo
-        logo_path = "logo.png"
+        logo_path = os.path.join(BASE_DIR, "logo.png")
         if not os.path.exists(logo_path):
-            logo_path = "IMG-20260216-WA0013.jpg"
+            logo_path = os.path.join(BASE_DIR, "IMG-20260216-WA0013.jpg")
         
         if os.path.exists(logo_path):
-            st.image(logo_path, width="stretch")
+            st.image(logo_path, width="stretch") # Streamlit 1.30+
         else:
             st.markdown("<div style='text-align: center; font-size: 80px;'>💧</div>", unsafe_allow_html=True)
             
@@ -161,7 +228,7 @@ elif st.session_state.page == 'welcome':
     st.markdown("<br>", unsafe_allow_html=True)
     
     # Display Image (image.png or fallback)
-    img_path = "image.png"
+    img_path = os.path.join(BASE_DIR, "image.png")
     if os.path.exists(img_path):
         st.image(img_path, width="stretch")
     else:
@@ -182,25 +249,44 @@ elif st.session_state.page == 'welcome':
 # --- DASHBOARD PAGE ---
 elif st.session_state.page == 'dashboard':
     # Header
-    col_head_1, col_head_2 = st.columns([1, 8])
+    col_head_1, col_head_2, col_head_3 = st.columns([1, 18, 2])
     with col_head_1:
          if st.button("⬅", help="Back to Welcome"):
              go_to_welcome()
     with col_head_2:
         st.title("AQUA SIGHT AI")
-    
+    with col_head_3:
+        if st.button("🕒", help="View History"):
+            if 'show_history' not in st.session_state:
+                st.session_state.show_history = True
+            else:
+                st.session_state.show_history = not st.session_state.show_history
+
     st.markdown("<p style='text-align: center; color: #cfeeff; margin-top: -15px;'>Water Quality Analysis Dashboard</p>", unsafe_allow_html=True)
     st.markdown("---")
+
+    # Show History if toggled
+    if st.session_state.get('show_history', False):
+        st.markdown("### 🕒 Recent Analysis History")
+        if st.session_state.history:
+            # Create a nice dataframe view
+            import pandas as pd
+            history_df = pd.DataFrame(st.session_state.history)
+            # Reorder columns if needed
+            if not history_df.empty:
+               st.dataframe(history_df.style.map(lambda x: 'color: #00ff88' if x == 'POTABLE (SAFE)' else ('color: #ff4d4d' if x == 'NOT POTABLE (UNSAFE)' else ''), subset=['Result']), use_container_width=True)
+        else:
+            st.info("No analysis history yet. Run a prediction!")
+        st.markdown("---")
 
     # Main Content
     col1, col2 = st.columns([1, 1.5]) # Adjusted ratio for better balance
     
-    import os
     with col1:
         # Mini Logo for Dashboard
-        logo_path = "logo.png"
+        logo_path = os.path.join(BASE_DIR, "logo.png")
         if not os.path.exists(logo_path):
-            logo_path = "IMG-20260216-WA0013.jpg"
+            logo_path = os.path.join(BASE_DIR, "IMG-20260216-WA0013.jpg")
             
         if os.path.exists(logo_path):
             st.image(logo_path, width="stretch")
@@ -215,7 +301,7 @@ elif st.session_state.page == 'dashboard':
     with col2:
         st.subheader("Sensor Inputs")
         
-        # Separate styled boxes for each input
+        # separate styled boxes for each input
         with st.container(border=True):
             ph = st.number_input("pH Level", min_value=0.0, max_value=14.0, value=7.0, step=0.1, help="Range: 0 - 14")
         
@@ -299,6 +385,18 @@ elif st.session_state.page == 'dashboard':
                     result_text = "POTABLE (SAFE)" if prediction == 1 else "NOT POTABLE (UNSAFE)"
                     result_class = "safe" if prediction == 1 else "unsafe"
                     
+                    # Save to History
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime("%H:%M:%S")
+                    st.session_state.history.append({
+                        "Time": timestamp,
+                        "pH": ph,
+                        "Solids": solids,
+                        "Turbidity": turbidity,
+                        "Result": result_text,
+                        "Conf.": f"{confidence:.1f}%"
+                    })
+                    
                     st.markdown(f"""
                     <div class="result-box">
                         <div style="font-size: 14px; color: #bfefff;">ANALYSIS RESULT</div>
@@ -312,26 +410,29 @@ elif st.session_state.page == 'dashboard':
                         
                     # Pie Chart Visualization in Left Column (chart_placeholder)
                     try:
-                        import matplotlib.pyplot as plt
-                        
                         # Data for Pie Chart
                         labels = ['Not Potable', 'Potable']
                         sizes = proba
                         colors = ['#ff4d4d', '#00ff88']
                         explode = (0.1, 0) if prediction == 0 else (0, 0.1)
 
-                        fig, ax = plt.subplots(figsize=(4, 4))
+                        fig, ax = plt.subplots(figsize=(5, 5))
                         fig.patch.set_facecolor('none') # Transparent background
                         ax.pie(sizes, explode=explode, labels=labels, colors=colors, autopct='%1.1f%%',
-                            shadow=True, startangle=90, textprops={'color':"white", 'fontsize': 10})
+                            shadow=True, startangle=90, textprops={'color':"white", 'fontsize': 12, 'weight': 'bold'})
                         ax.axis('equal')
                         
                         with chart_placeholder.container():
                             st.markdown("### Safety Distribution")
                             st.pyplot(fig, use_container_width=True)
                         
+                        plt.close(fig) # Close figure to free memory
+                        
                     except Exception as chart_err:
-                        st.error(f"Could not load chart: {chart_err}")
+                        # Fallback simple bar chart if matplotlib fails
+                        with chart_placeholder.container():
+                            st.error(f"Chart Error: {chart_err}")
+                            st.bar_chart({"Not Potable": proba[0], "Potable": proba[1]})
 
                 except Exception as e:
                     st.error(f"Prediction Error: {e}")

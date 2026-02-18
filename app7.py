@@ -1,4 +1,4 @@
- import streamlit as st
+import streamlit as st
 import pickle
 import numpy as np
 import os
@@ -560,3 +560,4 @@ elif st.session_state.page == 'dashboard':
     # Footer
     st.markdown("<br><br><br>", unsafe_allow_html=True)
     st.markdown("<div style='text-align: center; color: #555; font-size: 12px;'>Powered by Aqua Sight AI Model v1.0</div>", unsafe_allow_html=True)
+
